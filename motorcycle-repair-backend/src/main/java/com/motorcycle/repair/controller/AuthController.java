@@ -6,10 +6,12 @@ import com.motorcycle.repair.entity.User;
 import com.motorcycle.repair.service.AppointmentService;
 import com.motorcycle.repair.service.ChampionMessageService;
 import com.motorcycle.repair.service.MessageService;
+import com.motorcycle.repair.service.OssService;
 import com.motorcycle.repair.service.StatisticsService;
 import com.motorcycle.repair.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -21,6 +23,7 @@ public class AuthController {
     @Autowired private MessageService messageService;
     @Autowired private ChampionMessageService championMessageService;
     @Autowired private AppointmentService appointmentService;
+    @Autowired private OssService ossService;
 
     @PostMapping("/login")
     public Result<LoginResponse> login(@RequestBody LoginDTO dto) {
@@ -197,5 +200,16 @@ public class AuthController {
         if (data.getAvatar() != null) u.setAvatar(data.getAvatar());
         userService.updateById(u);
         return Result.success();
+    }
+
+    @PostMapping("/upload")
+    public Result<String> uploadFile(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) return Result.error("文件不能为空");
+        try {
+            String url = ossService.uploadFile(file);
+            return Result.success(url);
+        } catch (Exception e) {
+            return Result.error("上传失败: " + e.getMessage());
+        }
     }
 }

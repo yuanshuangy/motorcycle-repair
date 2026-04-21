@@ -23,6 +23,7 @@ public class RepairShop {
     private String auditRemark;
     private Integer autoAssign;
     private Integer autoAcceptTech;
+    private Integer autoConfirm;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

@@ -11,6 +11,7 @@ public class ShopTechnician {
     private Long id;
     private Long shopId;
     private Long userId;
+    private String position;
     private Integer status;
     private Integer restStatus;
     @TableField(fill = FieldFill.INSERT)

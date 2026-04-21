@@ -21,6 +21,10 @@
           <el-switch v-model="shop.autoAssign" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="updateSetting('autoAssign', $event)" />
           <span style="color:#999;font-size:12px;margin-left:12px">开启后新订单自动分配给关联技师</span>
         </el-form-item>
+        <el-form-item label="订单自动确认">
+          <el-switch v-model="shop.autoConfirm" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="updateSetting('autoConfirm', $event)" />
+          <span style="color:#999;font-size:12px;margin-left:12px">开启后新订单自动确认，关闭则需手动确认</span>
+        </el-form-item>
         <el-form-item label="自动接收技师">
           <el-switch v-model="shop.autoAcceptTech" :active-value="1" :inactive-value="0" active-text="开启" inactive-text="关闭" @change="updateSetting('autoAcceptTech', $event)" />
           <span style="color:#999;font-size:12px;margin-left:12px">开启后技师申请加入自动审核通过</span>

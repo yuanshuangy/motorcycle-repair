@@ -6,32 +6,18 @@ import com.motorcycle.repair.dto.Result;
 import com.motorcycle.repair.entity.Announcement;
 import com.motorcycle.repair.entity.User;
 import com.motorcycle.repair.service.AnnouncementService;
+import com.motorcycle.repair.service.OssService;
 import com.motorcycle.repair.service.UserService;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
     @Autowired private UserService userService;
     @Autowired private AnnouncementService announcementService;
-    @Value("${upload.path:./uploads/}")
-    private String uploadPath;
-
-    private File uploadDir;
-
-    @PostConstruct
-    public void init() {
-        uploadDir = new File(uploadPath).getAbsoluteFile();
-        if (!uploadDir.exists()) uploadDir.mkdirs();
-    }
+    @Autowired private OssService ossService;
 
     @GetMapping("/users/page")
     public Result<Page<User>> getUserPage(
@@ -57,6 +43,15 @@ public class AdminController {
         return Result.success();
     }
 
+    @DeleteMapping("/users/{id}")
+    public Result<Void> deleteUser(@PathVariable Long id) {
+        User user = userService.getById(id);
+        if (user == null) return Result.error("用户不存在");
+        if (user.getRole() == 1) return Result.error("不能删除管理员账号");
+        userService.removeById(id);
+        return Result.success();
+    }
+
     @PutMapping("/users/{id}")
     public Result<Void> updateUser(@PathVariable Long id, @RequestBody User data) {
         User u = new User(); u.setId(id);
@@ -72,16 +67,10 @@ public class AdminController {
     @PostMapping("/upload")
     public Result<String> uploadFile(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) return Result.error("文件不能为空");
-        String originalName = file.getOriginalFilename();
-        String ext = originalName != null && originalName.contains(".")
-                ? originalName.substring(originalName.lastIndexOf(".")) : ".jpg";
-        String fileName = UUID.randomUUID().toString().replace("-", "") + ext;
-        File dest = new File(uploadDir, fileName);
         try {
-            file.transferTo(dest.getAbsoluteFile());
-            return Result.success("/uploads/" + fileName);
-        } catch (IOException e) {
-            e.printStackTrace();
+            String url = ossService.uploadFile(file);
+            return Result.success(url);
+        } catch (Exception e) {
             return Result.error("上传失败: " + e.getMessage());
         }
     }

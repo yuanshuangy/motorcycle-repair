@@ -65,7 +65,19 @@
         <el-form-item label="登录账号"><el-input :value="addForm.username" disabled /><div style="color:#999;font-size:12px;margin-top:4px">系统自动生成，密码与账号相同</div></el-form-item>
         <el-form-item label="姓名" required><el-input v-model="addForm.realName" placeholder="请输入技师姓名" /></el-form-item>
         <el-form-item label="手机号"><el-input v-model="addForm.phone" maxlength="11" placeholder="11位手机号" /></el-form-item>
-        <el-form-item label="专业技能" required><el-input v-model="addForm.skill" placeholder="用逗号分隔，如：发动机维修,电路检修" /></el-form-item>
+        <el-form-item label="专业技能" required>
+          <div style="width:100%">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+              <el-check-tag v-for="sk in skillOptions" :key="sk" :checked="addFormCheckedSkills.includes(sk)" @change="toggleAddSkill(sk)" style="margin:2px">{{ sk }}</el-check-tag>
+            </div>
+            <el-input v-model="addFormCustomSkill" placeholder="输入自定义技能后回车添加" @keyup.enter="addCustomSkill('add')">
+              <template #append><el-button @click="addCustomSkill('add')">添加</el-button></template>
+            </el-input>
+            <div v-if="addForm.skill" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+              <el-tag v-for="sk in addForm.skill.split(',').filter(s=>s.trim())" :key="sk" closable size="small" @close="removeAddSkill(sk)">{{ sk.trim() }}</el-tag>
+            </div>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer><el-button @click="showAddTech=false">取消</el-button><el-button type="primary" @click="submitAddTech" :loading="adding">确定新增</el-button></template>
     </el-dialog>
@@ -74,7 +86,19 @@
         <el-form-item label="登录账号"><el-input :value="editForm.username" disabled /></el-form-item>
         <el-form-item label="姓名" required><el-input v-model="editForm.realName" placeholder="请输入技师姓名" /></el-form-item>
         <el-form-item label="手机号"><el-input v-model="editForm.phone" maxlength="11" placeholder="11位手机号" /></el-form-item>
-        <el-form-item label="专业技能" required><el-input v-model="editForm.skill" placeholder="用逗号分隔，如：发动机维修,电路检修" /></el-form-item>
+        <el-form-item label="专业技能" required>
+          <div style="width:100%">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+              <el-check-tag v-for="sk in skillOptions" :key="sk" :checked="editFormCheckedSkills.includes(sk)" @change="toggleEditSkill(sk)" style="margin:2px">{{ sk }}</el-check-tag>
+            </div>
+            <el-input v-model="editFormCustomSkill" placeholder="输入自定义技能后回车添加" @keyup.enter="addCustomSkill('edit')">
+              <template #append><el-button @click="addCustomSkill('edit')">添加</el-button></template>
+            </el-input>
+            <div v-if="editForm.skill" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+              <el-tag v-for="sk in editForm.skill.split(',').filter(s=>s.trim())" :key="sk" closable size="small" @close="removeEditSkill(sk)">{{ sk.trim() }}</el-tag>
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item label="休息状态">
           <div style="display:flex;gap:8px;align-items:center">
             <el-tag :type="editForm.restStatus===1?'danger':'success'" effect="dark">{{ editForm.restStatus===1?'休息中':'在岗' }}</el-tag>
@@ -163,11 +187,16 @@ import { useUserStore } from '../../store/user'
 import { useConfigStore } from '../../store/config'
 const userStore = useUserStore(), configStore = useConfigStore()
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+const skillOptions = ['司机','常规保养','轮胎更换','刹车检修','发动机维修','电路检修','链条更换','减震器维修','化油器清洗','整车喷漆','年检代办','火花塞更换','空滤清洗/更换','电瓶检测/充电','大灯/转向灯维修','离合系统检修','换挡机构检修','燃油系统清洗','脚踏/挂挡杆维修','后视镜/车把维修','排气管检修','整车检查','洗车+链条养护']
 const techStats = ref([]), shopId = ref(null)
 const showAddTech = ref(false), adding = ref(false)
 const addForm = reactive({ username:'', realName:'', phone:'', skill:'' })
+const addFormCheckedSkills = ref([])
+const addFormCustomSkill = ref('')
 const showEditTech = ref(false), editing = ref(false)
 const editForm = reactive({ id:null, username:'', realName:'', phone:'', skill:'', restStatus:0 })
+const editFormCheckedSkills = ref([])
+const editFormCustomSkill = ref('')
 const showBindTech = ref(false), bindLoading = ref(false), bindSearch = ref(''), availTechs = ref([])
 const showRestSchedule = ref(false), scheduleLoading = ref(false), scheduleData = ref([]), scheduleDays = ref([]), scheduleTable = ref([])
 const tomorrowRestTechs = ref([])
@@ -205,7 +234,61 @@ const fetchTomorrowRest = async () => {
 const openEditTech = tech => {
   editForm.id=tech.id; editForm.username=tech.realName||''; editForm.realName=tech.realName||''
   editForm.phone=tech.phone||''; editForm.skill=tech.skill||''; editForm.restStatus=tech.restStatus||0
+  editFormCheckedSkills.value = skillOptions.filter(sk => (tech.skill||'').split(',').map(s=>s.trim()).includes(sk))
+  editFormCustomSkill.value = ''
   showEditTech.value=true
+}
+const getCustomSkills = (skillStr) => {
+  return (skillStr||'').split(',').map(s=>s.trim()).filter(s=>s && !skillOptions.includes(s))
+}
+const toggleAddSkill = (sk) => {
+  const idx = addFormCheckedSkills.value.indexOf(sk)
+  if (idx >= 0) { addFormCheckedSkills.value.splice(idx, 1) }
+  else { addFormCheckedSkills.value.push(sk) }
+  rebuildAddSkill()
+}
+const toggleEditSkill = (sk) => {
+  const idx = editFormCheckedSkills.value.indexOf(sk)
+  if (idx >= 0) { editFormCheckedSkills.value.splice(idx, 1) }
+  else { editFormCheckedSkills.value.push(sk) }
+  rebuildEditSkill()
+}
+const rebuildAddSkill = () => {
+  const customs = getCustomSkills(addForm.skill)
+  addForm.skill = [...addFormCheckedSkills.value, ...customs].join(',')
+}
+const rebuildEditSkill = () => {
+  const customs = getCustomSkills(editForm.skill)
+  editForm.skill = [...editFormCheckedSkills.value, ...customs].join(',')
+}
+const addCustomSkill = (type) => {
+  if (type === 'add') {
+    const val = addFormCustomSkill.value.trim()
+    if (!val) return
+    if (addForm.skill) addForm.skill += ',' + val
+    else addForm.skill = val
+    if (skillOptions.includes(val) && !addFormCheckedSkills.value.includes(val)) addFormCheckedSkills.value.push(val)
+    addFormCustomSkill.value = ''
+  } else {
+    const val = editFormCustomSkill.value.trim()
+    if (!val) return
+    if (editForm.skill) editForm.skill += ',' + val
+    else editForm.skill = val
+    if (skillOptions.includes(val) && !editFormCheckedSkills.value.includes(val)) editFormCheckedSkills.value.push(val)
+    editFormCustomSkill.value = ''
+  }
+}
+const removeAddSkill = (sk) => {
+  const skills = addForm.skill.split(',').map(s=>s.trim()).filter(s=>s && s!==sk)
+  addForm.skill = skills.join(',')
+  const idx = addFormCheckedSkills.value.indexOf(sk)
+  if (idx >= 0) addFormCheckedSkills.value.splice(idx, 1)
+}
+const removeEditSkill = (sk) => {
+  const skills = editForm.skill.split(',').map(s=>s.trim()).filter(s=>s && s!==sk)
+  editForm.skill = skills.join(',')
+  const idx = editFormCheckedSkills.value.indexOf(sk)
+  if (idx >= 0) editFormCheckedSkills.value.splice(idx, 1)
 }
 const submitEditTech = async () => {
   if(!editForm.realName) return ElMessage.warning('请输入技师姓名')
@@ -222,7 +305,7 @@ const submitEditTech = async () => {
 }
 const openAddTech = async () => {
   try { const r = await authAPI.getNextTechUsername(); if(r.code===200) addForm.username=r.data } catch{ addForm.username='zhang009' }
-  addForm.realName=''; addForm.phone=''; addForm.skill=''
+  addForm.realName=''; addForm.phone=''; addForm.skill=''; addFormCheckedSkills.value=[]; addFormCustomSkill.value=''
   showAddTech.value=true
 }
 const submitAddTech = async () => {

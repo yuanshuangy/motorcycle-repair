@@ -22,10 +22,9 @@
       </template>
     </el-row>
     <el-row v-if="userStore.role===2" :gutter="20" style="margin-top:20px">
-      <el-col :span="6"><div class="stat-card clickable" @click="go('/layout/shop/employees')"><div class="stat-icon" style="background:#e8f4fd;color:#1890ff"><el-icon size="28"><UserFilled /></el-icon></div><div class="stat-value">{{ s.technicianCount||0 }}</div><div class="stat-label">关联技师</div></div></el-col>
-      <el-col :span="6"><div class="stat-card clickable" @click="go('/layout/shop/services')"><div class="stat-icon" style="background:#e6f7e9;color:#52c41a"><el-icon size="28"><Tools /></el-icon></div><div class="stat-value">{{ s.serviceCount||0 }}</div><div class="stat-label">服务项目</div></div></el-col>
-      <el-col :span="6"><div class="stat-card clickable" @click="go('/layout/shop/employees')"><div class="stat-icon" style="background:#fff7e6;color:#fa8c16"><el-icon size="28"><Avatar /></el-icon></div><div class="stat-value">{{ s.employeeCount||0 }}</div><div class="stat-label">员工数量</div></div></el-col>
-      <el-col :span="6"><div class="stat-card clickable" @click="go('/layout/shop/orders')"><div class="stat-icon" style="background:#fff1f0;color:#f5222d"><el-icon size="28"><Warning /></el-icon></div><div class="stat-value">{{ s.processingAppointmentCount||0 }}</div><div class="stat-label">维修中</div></div></el-col>
+      <el-col :span="8"><div class="stat-card clickable" @click="go('/layout/shop/employees')"><div class="stat-icon" style="background:#e8f4fd;color:#1890ff"><el-icon size="28"><UserFilled /></el-icon></div><div class="stat-value">{{ s.technicianCount||0 }}</div><div class="stat-label">关联技师</div></div></el-col>
+      <el-col :span="8"><div class="stat-card clickable" @click="go('/layout/shop/services')"><div class="stat-icon" style="background:#e6f7e9;color:#52c41a"><el-icon size="28"><Tools /></el-icon></div><div class="stat-value">{{ s.serviceCount||0 }}</div><div class="stat-label">服务项目</div></div></el-col>
+      <el-col :span="8"><div class="stat-card clickable" @click="go('/layout/shop/orders')"><div class="stat-icon" style="background:#fff1f0;color:#f5222d"><el-icon size="28"><Warning /></el-icon></div><div class="stat-value">{{ s.processingAppointmentCount||0 }}</div><div class="stat-label">维修中</div></div></el-col>
     </el-row>
     <el-row v-if="[1,2].includes(userStore.role)" :gutter="20" style="margin-top:20px">
       <el-col :span="24">

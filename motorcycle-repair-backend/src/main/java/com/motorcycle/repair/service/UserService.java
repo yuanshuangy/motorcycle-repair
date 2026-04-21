@@ -76,10 +76,25 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         if (!errors.isEmpty()) {
             throw new RuntimeException(String.join("；", errors));
         }
+        User existing = findByUsernameIncludeDeleted(dto.getUsername());
+        if (existing != null) {
+            if (existing.getDeleted() != null && existing.getDeleted() == 1) {
+                this.baseMapper.recoverDeletedUser(
+                        dto.getUsername(),
+                        passwordEncoder.encode(dto.getPassword()),
+                        dto.getRealName(),
+                        dto.getPhone(),
+                        dto.getEmail(),
+                        dto.getRole() != null ? dto.getRole() : 3,
+                        1, 0);
+                return;
+            }
+            throw new RuntimeException("用户名已存在");
+        }
         User u = new User();
         u.setUsername(dto.getUsername()); u.setPassword(passwordEncoder.encode(dto.getPassword()));
         u.setRealName(dto.getRealName()); u.setPhone(dto.getPhone()); u.setEmail(dto.getEmail());
-        u.setRole(3); u.setStatus(1); u.setVerified(0);
+        u.setRole(dto.getRole() != null ? dto.getRole() : 3); u.setStatus(1); u.setVerified(0);
         this.save(u);
     }
 
@@ -87,10 +102,15 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         return this.count(new LambdaQueryWrapper<User>().eq(User::getUsername, username)) > 0;
     }
 
+    public User findByUsernameIncludeDeleted(String username) {
+        return this.baseMapper.selectByUsernameIncludeDeleted(username);
+    }
+
     public String getNextTechUsername() {
         for (int i = 9; i <= 999; i++) {
             String username = "zhang" + String.format("%03d", i);
-            if (!existsByUsername(username)) return username;
+            User existing = findByUsernameIncludeDeleted(username);
+            if (existing == null) return username;
         }
         return "zhang999";
     }

@@ -34,8 +34,7 @@ CREATE TABLE IF NOT EXISTS repair_shop (
     audit_remark VARCHAR(500),
     auto_assign INT DEFAULT 0,
     auto_accept_tech INT DEFAULT 0,
-    open_time VARCHAR(10),
-    close_time VARCHAR(10),
+    auto_confirm INT DEFAULT 0,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted INT DEFAULT 0,
@@ -55,22 +54,6 @@ CREATE TABLE IF NOT EXISTS service_type (
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted INT DEFAULT 0,
     UNIQUE KEY uk_shop_service (shop_id, service_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS employee (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    shop_id BIGINT,
-    user_id BIGINT,
-    employee_name VARCHAR(50) NOT NULL,
-    phone VARCHAR(20),
-    position VARCHAR(50),
-    skill VARCHAR(200),
-    avatar VARCHAR(500),
-    status INT DEFAULT 1,
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted INT DEFAULT 0,
-    UNIQUE KEY uk_shop_employee (shop_id, employee_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS appointment (
@@ -172,6 +155,7 @@ CREATE TABLE IF NOT EXISTS shop_technician (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     shop_id BIGINT NOT NULL,
+    position VARCHAR(50),
     status INT DEFAULT 1,
     rest_status INT DEFAULT 0,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -80,22 +80,14 @@ public class AppointmentService extends ServiceImpl<AppointmentMapper, Appointme
             if (sv != null) { d.setServiceName(sv.getServiceName()); d.setServicePrice(sv.getPrice()); d.setServiceDuration(sv.getDuration()); }
             if (a.getEmployeeId() != null) {
                 User tech = userService.getById(a.getEmployeeId());
-                if (tech != null && tech.getRole() == 4) {
+                if (tech != null) {
                     d.setEmployeeName(tech.getRealName() != null ? tech.getRealName() : tech.getUsername());
                     d.setEmployeePhone(tech.getPhone());
                     d.setEmployeeAvatar(tech.getAvatar());
-                    d.setEmployeeRole("技师");
                     d.setEmployeeSkill(tech.getSkill());
-                }
-                if (tech == null || tech.getRole() != 4) {
-                    Employee e = employeeService.getById(a.getEmployeeId());
-                    if (e != null) {
-                        d.setEmployeeName(e.getEmployeeName());
-                        d.setEmployeePhone(e.getPhone());
-                        d.setEmployeeSkill(e.getSkill());
-                        d.setEmployeeAvatar(e.getAvatar());
-                        d.setEmployeeRole("员工");
-                    }
+                    ShopTechnician st = shopTechnicianService.getOne(new LambdaQueryWrapper<ShopTechnician>()
+                            .eq(ShopTechnician::getShopId, a.getShopId()).eq(ShopTechnician::getUserId, tech.getId()));
+                    d.setEmployeeRole(st != null && st.getPosition() != null ? st.getPosition() : "技师");
                 }
             }
             if (a.getDriverId() != null) {
@@ -309,12 +301,20 @@ public class AppointmentService extends ServiceImpl<AppointmentMapper, Appointme
                     }
                 }
 
-                if (a.getEmployeeId() == null) {
+                boolean autoAssign = shop.getAutoAssign() != null && shop.getAutoAssign() == 1;
+                boolean autoConfirm = shop.getAutoConfirm() != null && shop.getAutoConfirm() == 1;
+
+                if (a.getEmployeeId() == null && autoAssign) {
                     User bestTech = findBestRepairTech(techs, serviceName, desc, hasTow, a.getShopId(), a.getAppointmentTime(), a.getServiceId());
                     if (bestTech != null) {
                         a.setEmployeeId(bestTech.getId());
                     }
                 }
+
+                if (autoConfirm) {
+                    a.setStatus(1);
+                }
+
                 this.updateById(a);
             }
         }

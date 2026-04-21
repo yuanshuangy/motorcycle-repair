@@ -218,32 +218,43 @@ public class TechRestScheduleService extends ServiceImpl<TechRestScheduleMapper,
         for (int i = 0; i < needed; i++) {
             int nextNum = getNextTechNumber();
             String username = "zhang" + String.format("%03d", nextNum);
-            User existing = userService.getOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
-            if (existing != null) continue;
+            User existing = userService.findByUsernameIncludeDeleted(username);
+            if (existing != null) {
+                if (existing.getDeleted() != null && existing.getDeleted() == 1) {
+                    userService.getBaseMapper().recoverDeletedUser(
+                            username, encoded,
+                            "新技师" + nextNum,
+                            "1380000" + String.format("%05d", nextNum + 1000),
+                            username + "@moto.com", 4, 1, 1);
+                    existing = userService.findByUsernameIncludeDeleted(username);
+                } else {
+                    continue;
+                }
+            } else {
+                existing = new User();
+                existing.setUsername(username);
+                existing.setPassword(encoded);
+                existing.setRealName("新技师" + nextNum);
+                existing.setPhone("1380000" + String.format("%05d", nextNum + 1000));
+                existing.setEmail(username + "@moto.com");
+                existing.setRole(4);
+                existing.setStatus(1);
+                existing.setVerified(1);
+                existing.setSkill("司机,常规保养,轮胎更换,刹车检修");
+                userService.save(existing);
+            }
 
-            User newTech = new User();
-            newTech.setUsername(username);
-            newTech.setPassword(encoded);
-            newTech.setRealName("新技师" + nextNum);
-            newTech.setPhone("1380000" + String.format("%05d", nextNum + 1000));
-            newTech.setEmail(username + "@moto.com");
-            newTech.setRole(4);
-            newTech.setStatus(1);
-            newTech.setVerified(1);
-            newTech.setSkill("司机,常规保养,轮胎更换,刹车检修");
-            userService.save(newTech);
+            shopTechnicianService.bindTechnician(shopId, existing.getId());
 
-            shopTechnicianService.bindTechnician(shopId, newTech.getId());
-
-            techIds.add(newTech.getId());
-            techs.add(newTech);
-            week1RestCount.put(newTech.getId(), 0);
-            week2RestCount.put(newTech.getId(), 0);
-            techRestDays.put(newTech.getId(), new LinkedHashSet<>());
-            for (String s : newTech.getSkill().split("[,，、]")) {
+            techIds.add(existing.getId());
+            techs.add(existing);
+            week1RestCount.put(existing.getId(), 0);
+            week2RestCount.put(existing.getId(), 0);
+            techRestDays.put(existing.getId(), new LinkedHashSet<>());
+            for (String s : existing.getSkill().split("[,，、]")) {
                 String trimmed = s.trim();
                 if (!trimmed.isEmpty() && !trimmed.equals("司机")) {
-                    skillToTechs.computeIfAbsent(trimmed, k -> new HashSet<>()).add(newTech.getId());
+                    skillToTechs.computeIfAbsent(trimmed, k -> new HashSet<>()).add(existing.getId());
                 }
             }
             added++;
@@ -263,6 +274,11 @@ public class TechRestScheduleService extends ServiceImpl<TechRestScheduleMapper,
                     if (num > maxNum) maxNum = num;
                 } catch (NumberFormatException ignored) {}
             }
+        }
+        for (int i = 9; i <= maxNum + 1; i++) {
+            String username = "zhang" + String.format("%03d", i);
+            User existing = userService.findByUsernameIncludeDeleted(username);
+            if (existing == null) return i;
         }
         return maxNum + 1;
     }

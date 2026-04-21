@@ -26,11 +26,12 @@
         <el-table-column prop="verified" label="认证" width="80"><template #default="{row}"><el-tag :type="row.verified===1?'success':'info'" size="small">{{row.verified===1?'已认证':'未认证'}}</el-tag></template></el-table-column>
         <el-table-column prop="status" label="状态" width="80"><template #default="{row}"><el-tag :type="row.status===1?'success':'danger'" size="small">{{configStore.userStatusName(row.status)}}</el-tag></template></el-table-column>
         <el-table-column prop="createTime" label="注册时间" width="170" />
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{row}">
             <el-button size="small" type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button v-if="row.status===1" size="small" type="danger" @click="toggleStatus(row,0)">禁用</el-button>
             <el-button v-else size="small" type="success" @click="toggleStatus(row,1)">启用</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -75,7 +76,7 @@
 </template>
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminAPI, authAPI } from '../../api'
 import { useConfigStore } from '../../store/config'
 const configStore = useConfigStore()
@@ -86,6 +87,15 @@ const editForm = ref({ id:'', username:'', realName:'', phone:'', avatar:'', rol
 const roleNames = computed(() => { const m = {}; const list = configStore.dicts['user_role'] || []; list.forEach(d => m[d.dictValue] = d.dictLabel); return m })
 const fetchData = async () => { try { const r = await adminAPI.getUserPage({pageNum:pn.value,pageSize:ps.value,role:roleFilter.value,status:statusFilter.value}); if(r.code===200) { list.value=r.data.records; total.value=r.data.total } } catch(e){} }
 const toggleStatus = async (row, s) => { try { await adminAPI.updateUserStatus(row.id, s); ElMessage.success('操作成功'); fetchData() } catch(e){} }
+const handleDelete = async (row) => {
+  if (row.role === 1) return ElMessage.warning('不能删除管理员账号')
+  try {
+    await ElMessageBox.confirm(`确定删除用户「${row.realName || row.username}」吗？`, '删除确认', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' })
+    await adminAPI.deleteUser(row.id)
+    ElMessage.success('删除成功')
+    fetchData()
+  } catch {}
+}
 const openEdit = (row) => {
   editForm.value = { id: row.id, username: row.username, realName: row.realName||'', phone: row.phone||'', avatar: row.avatar||'', role: row.role, verified: row.verified, status: row.status, createTime: row.createTime||'', skill: row.skill||'' }
   showEdit.value = true
