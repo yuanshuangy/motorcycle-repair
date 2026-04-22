@@ -8,4 +8,5 @@ public class RegisterDTO {
     private String phone;
     private String email;
     private Integer role;
+    private String skill;
 }

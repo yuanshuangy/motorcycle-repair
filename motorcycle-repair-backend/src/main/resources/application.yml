@@ -18,7 +18,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/motorcycle_repair?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
-    password: 159357
+    password: ${DB_PASSWORD:159357}
   servlet:
     multipart:
       max-file-size: 10MB
@@ -37,7 +37,7 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 jwt:
-  secret: MotorCycleRepairSecretKey2024VeryLongAndSecureKeyForJWT
+  secret: ${JWT_SECRET:MotorCycleRepairSecretKey2024VeryLongAndSecureKeyForJWT}
   expiration: 86400000
 
 upload:
@@ -45,7 +45,7 @@ upload:
 
 aliyun:
   oss:
-    endpoint: oss-cn-beijing.aliyuncs.com
+    endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
     access-key-id: ${OSS_ACCESS_KEY_ID:YOUR_ACCESS_KEY_ID}
     access-key-secret: ${OSS_ACCESS_KEY_SECRET:YOUR_ACCESS_KEY_SECRET}
     bucket-name: ${OSS_BUCKET_NAME:motorcycle-repair}

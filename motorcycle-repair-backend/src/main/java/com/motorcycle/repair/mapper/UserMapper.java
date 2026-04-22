@@ -13,9 +13,10 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Update("UPDATE sys_user SET deleted = 0, password = #{password}, real_name = #{realName}, " +
             "phone = #{phone}, email = #{email}, role = #{role}, status = #{status}, verified = #{verified}, " +
-            "update_time = NOW() WHERE username = #{username} AND deleted = 1")
+            "skill = #{skill}, update_time = NOW() WHERE username = #{username} AND deleted = 1")
     int recoverDeletedUser(@Param("username") String username, @Param("password") String password,
                            @Param("realName") String realName, @Param("phone") String phone,
                            @Param("email") String email, @Param("role") Integer role,
-                           @Param("status") Integer status, @Param("verified") Integer verified);
+                           @Param("status") Integer status, @Param("verified") Integer verified,
+                           @Param("skill") String skill);
 }

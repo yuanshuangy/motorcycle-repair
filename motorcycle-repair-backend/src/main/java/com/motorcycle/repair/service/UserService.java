@@ -86,7 +86,7 @@ public class UserService extends ServiceImpl<UserMapper, User> {
                         dto.getPhone(),
                         dto.getEmail(),
                         dto.getRole() != null ? dto.getRole() : 3,
-                        1, 0);
+                        1, 0, dto.getSkill());
                 return;
             }
             throw new RuntimeException("用户名已存在");
@@ -95,6 +95,7 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         u.setUsername(dto.getUsername()); u.setPassword(passwordEncoder.encode(dto.getPassword()));
         u.setRealName(dto.getRealName()); u.setPhone(dto.getPhone()); u.setEmail(dto.getEmail());
         u.setRole(dto.getRole() != null ? dto.getRole() : 3); u.setStatus(1); u.setVerified(0);
+        u.setSkill(dto.getSkill());
         this.save(u);
     }
 

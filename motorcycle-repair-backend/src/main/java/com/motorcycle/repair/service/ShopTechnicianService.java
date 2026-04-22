@@ -44,6 +44,7 @@ public class ShopTechnicianService extends ServiceImpl<ShopTechnicianMapper, Sho
             st.setShopId(shopId);
             st.setUserId(userId);
             st.setStatus(1);
+            st.setRestStatus(0);
             this.save(st);
         }
     }

@@ -171,10 +171,6 @@ public class DataInitializer implements CommandLineRunner {
                 user.setRole(Integer.parseInt(u[4])); user.setStatus(Integer.parseInt(u[5]));
                 user.setVerified(Integer.parseInt(u[6])); user.setSkill(u[7].isEmpty() ? null : u[7]);
                 userService.save(user);
-            } else {
-                existing.setRealName(u[1]); existing.setPhone(u[2]); existing.setEmail(u[3]);
-                existing.setSkill(u[7].isEmpty() ? null : u[7]);
-                userService.updateById(existing);
             }
         }
     }
@@ -183,19 +179,7 @@ public class DataInitializer implements CommandLineRunner {
         User shopUser = userService.getOne(new LambdaQueryWrapper<User>().eq(User::getUsername, "shop1"));
         if (shopUser == null) return;
         RepairShop existing = repairShopService.getOne(new LambdaQueryWrapper<RepairShop>().eq(RepairShop::getUserId, shopUser.getId()));
-        if (existing != null) {
-            existing.setShopName("张师傅摩托车维修中心");
-            existing.setAddress("北京市朝阳区建国路88号");
-            existing.setPhone("010-88888888");
-            existing.setDescription("专业摩托车维修保养，20年经验技师团队，提供发动机维修、电路检修、常规保养等全方位服务");
-            existing.setBusinessHours("08:00-20:00");
-            existing.setRating(4.80);
-            existing.setAuditStatus(1);
-            existing.setAutoAssign(1);
-            existing.setAutoAcceptTech(1);
-            repairShopService.updateById(existing);
-            return;
-        }
+        if (existing != null) return;
         RepairShop shop = new RepairShop();
         shop.setUserId(shopUser.getId());
         shop.setShopName("张师傅摩托车维修中心");
@@ -244,15 +228,6 @@ public class DataInitializer implements CommandLineRunner {
                 emp.setShopId(shop.getId()); emp.setEmployeeName(e[0]);
                 emp.setPhone(e[1]); emp.setPosition(e[2]); emp.setSkill(e[3]); emp.setStatus(1);
                 employeeService.save(emp);
-            } else {
-                existing.setPhone(e[1]); existing.setPosition(e[2]); existing.setSkill(e[3]);
-                employeeService.updateById(existing);
-            }
-        }
-        List<Employee> all = employeeService.list(new LambdaQueryWrapper<Employee>().eq(Employee::getShopId, shop.getId()));
-        for (Employee emp : all) {
-            if (!emp.getEmployeeName().equals("刘技师") && !emp.getEmployeeName().equals("王技师") && !emp.getEmployeeName().equals("赵技师")) {
-                employeeService.removeById(emp.getId());
             }
         }
     }

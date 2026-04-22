@@ -20,7 +20,6 @@ public class AppointmentService extends ServiceImpl<AppointmentMapper, Appointme
     @Autowired private UserService userService;
     @Autowired private RepairShopService repairShopService;
     @Autowired private ServiceTypeService serviceTypeService;
-    @Autowired private EmployeeService employeeService;
     @Autowired private ShopTechnicianService shopTechnicianService;
     @Autowired private ReviewService reviewService;
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

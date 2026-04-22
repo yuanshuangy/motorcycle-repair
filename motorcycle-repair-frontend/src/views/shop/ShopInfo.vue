@@ -2,16 +2,22 @@
   <div>
     <div class="page-header"><h2>店铺信息</h2><el-button type="primary" @click="openEdit">{{ shop.id?'编辑信息':'创建店铺' }}</el-button></div>
     <el-card v-if="shop.id">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="店铺名称">{{ shop.shopName }}</el-descriptions-item>
-        <el-descriptions-item label="联系电话">{{ shop.phone }}</el-descriptions-item>
-        <el-descriptions-item label="地址">{{ shop.address }}</el-descriptions-item>
-        <el-descriptions-item label="营业时间">{{ shop.businessHours }}</el-descriptions-item>
-        <el-descriptions-item label="评分"><el-rate v-model="shop.rating" disabled /></el-descriptions-item>
-        <el-descriptions-item label="审核状态"><el-tag :type="shop.auditStatus===1?'success':shop.auditStatus===2?'danger':'warning'">{{ shop.auditStatus===1?'已通过':shop.auditStatus===2?'已拒绝':'待审核' }}</el-tag></el-descriptions-item>
-        <el-descriptions-item label="简介" :span="2">{{ shop.description }}</el-descriptions-item>
-        <el-descriptions-item v-if="shop.auditRemark" label="审核备注" :span="2">{{ shop.auditRemark }}</el-descriptions-item>
-      </el-descriptions>
+      <div style="display:flex;gap:24px;align-items:flex-start">
+        <div style="text-align:center">
+          <el-avatar :size="100" :src="shop.coverImage||defaultShopAvatar" shape="square" style="border:2px solid #e8e8e8" />
+          <div style="margin-top:8px;color:#999;font-size:12px">店铺头像</div>
+        </div>
+        <el-descriptions :column="2" border style="flex:1">
+          <el-descriptions-item label="店铺名称">{{ shop.shopName }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ shop.phone }}</el-descriptions-item>
+          <el-descriptions-item label="地址">{{ shop.address }}</el-descriptions-item>
+          <el-descriptions-item label="营业时间">{{ shop.businessHours }}</el-descriptions-item>
+          <el-descriptions-item label="评分"><el-rate v-model="shop.rating" disabled /></el-descriptions-item>
+          <el-descriptions-item label="审核状态"><el-tag :type="shop.auditStatus===1?'success':shop.auditStatus===2?'danger':'warning'">{{ shop.auditStatus===1?'已通过':shop.auditStatus===2?'已拒绝':'待审核' }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="简介" :span="2">{{ shop.description }}</el-descriptions-item>
+          <el-descriptions-item v-if="shop.auditRemark" label="审核备注" :span="2">{{ shop.auditRemark }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
     </el-card>
     <el-card v-else><el-empty description="您还未创建店铺，请点击右上角创建" /></el-card>
     <el-card v-if="shop.id" style="margin-top:20px">
@@ -33,6 +39,13 @@
     </el-card>
     <el-dialog v-model="showEdit" title="编辑店铺" width="600px">
       <el-form :model="form" label-width="100px">
+        <el-form-item label="店铺头像">
+          <div style="display:flex;align-items:center;gap:16px">
+            <el-avatar :size="80" :src="form.coverImage||defaultShopAvatar" shape="square" />
+            <el-button type="primary" size="small" @click="triggerCoverUpload">上传头像</el-button>
+            <input ref="coverInput" type="file" accept="image/*" style="display:none" @change="onCoverChange" />
+          </div>
+        </el-form-item>
         <el-form-item label="店铺名称"><el-input v-model="form.shopName" /></el-form-item>
         <el-form-item label="地址"><el-input v-model="form.address" /></el-form-item>
         <el-form-item label="联系电话"><el-input v-model="form.phone" /></el-form-item>
@@ -52,11 +65,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { shopAPI } from '../../api'
+import { shopAPI, adminAPI } from '../../api'
 import { useUserStore } from '../../store/user'
 const userStore = useUserStore()
-const shop = ref({}), showEdit = ref(false)
-const form = reactive({ id:null, userId:null, shopName:'', address:'', phone:'', businessHours:'', description:'', openTime:'', closeTime:'' })
+const defaultShopAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+const shop = ref({}), showEdit = ref(false), coverInput = ref(null)
+const form = reactive({ id:null, userId:null, shopName:'', address:'', phone:'', businessHours:'', description:'', coverImage:'', openTime:'', closeTime:'' })
 const fetchShop = async () => { try { const r=await shopAPI.getByUserId(userStore.userId); if(r.code===200) shop.value=r.data||{} } catch(e){} }
 const parseBusinessHours = bh => {
   if(!bh) { form.openTime=''; form.closeTime=''; return }
@@ -67,6 +81,17 @@ const parseBusinessHours = bh => {
 const openEdit = () => {
   if(shop.value.id) { Object.assign(form, shop.value); parseBusinessHours(shop.value.businessHours) }
   showEdit.value=true
+}
+const triggerCoverUpload = () => { coverInput.value && coverInput.value.click() }
+const onCoverChange = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  try {
+    const r = await adminAPI.uploadFile(file)
+    if (r.code === 200) { form.coverImage = r.data; ElMessage.success('头像上传成功') }
+    else ElMessage.error(r.message || '上传失败')
+  } catch { ElMessage.error('上传失败') }
+  e.target.value = ''
 }
 const updateSetting = async (field, val) => {
   try { await shopAPI.update({ id: shop.value.id, [field]: val }); ElMessage.success('设置已更新') }

@@ -225,7 +225,8 @@ public class TechRestScheduleService extends ServiceImpl<TechRestScheduleMapper,
                             username, encoded,
                             "新技师" + nextNum,
                             "1380000" + String.format("%05d", nextNum + 1000),
-                            username + "@moto.com", 4, 1, 1);
+                            username + "@moto.com", 4, 1, 1,
+                            "司机,常规保养,轮胎更换,刹车检修");
                     existing = userService.findByUsernameIncludeDeleted(username);
                 } else {
                     continue;

@@ -314,13 +314,14 @@ const submitAddTech = async () => {
   if(addForm.phone && !/^1[3-9]\d{9}$/.test(addForm.phone)) return ElMessage.warning('手机号格式不正确')
   adding.value=true
   try {
-    const regR = await authAPI.register({ username:addForm.username, password:addForm.username, realName:addForm.realName, phone:addForm.phone, email:addForm.username+'@moto.com', role:4 })
+    const regR = await authAPI.register({ username:addForm.username, password:addForm.username, realName:addForm.realName, phone:addForm.phone, email:addForm.username+'@moto.com', role:4, skill:addForm.skill })
     if(regR.code!==200) { ElMessage.error(regR.message||'创建账号失败'); adding.value=false; return }
     const loginR = await authAPI.login({ username:addForm.username, password:addForm.username })
     if(loginR.code===200 && loginR.data) {
       await shopAPI.bindTechnician(shopId.value, loginR.data.id)
+      if(addForm.skill) await authAPI.updateUser(loginR.data.id, { skill: addForm.skill })
       ElMessage.success('技师创建成功！账号：'+addForm.username+'，密码：'+addForm.username)
-      showAddTech.value=false; fetchTechStats()
+      showAddTech.value=false; fetchTechStats(); fetchTomorrowRest()
     }
   } catch(e) { ElMessage.error('创建失败') }
   finally { adding.value=false }
