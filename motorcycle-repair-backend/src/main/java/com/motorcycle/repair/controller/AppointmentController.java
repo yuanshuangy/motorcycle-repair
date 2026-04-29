@@ -109,4 +109,20 @@ public class AppointmentController {
     public Result<Void> updateRecord(@RequestBody RepairRecord record) {
         repairRecordService.updateRecord(record); return Result.success();
     }
+
+    @PutMapping("/confirm-price/{id}")
+    public Result<Void> confirmPrice(@PathVariable Long id, @RequestParam Double finalPrice, @RequestParam(required = false) String priceRemark) {
+        appointmentService.confirmPrice(id, finalPrice, priceRemark); return Result.success();
+    }
+
+    @GetMapping("/transfer-techs/{id}")
+    public Result<List<Map<String, Object>>> getTransferTechs(@PathVariable Long id) {
+        return Result.success(appointmentService.getTransferTechs(id));
+    }
+
+    @PutMapping("/transfer/{id}")
+    public Result<Void> transferOrder(@PathVariable Long id, @RequestParam Long newTechId, @RequestParam(required = false) String transferReason) {
+        try { appointmentService.transferOrder(id, newTechId, transferReason); return Result.success(); }
+        catch (Exception e) { return Result.error(400, e.getMessage()); }
+    }
 }

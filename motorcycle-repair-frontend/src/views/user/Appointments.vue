@@ -4,7 +4,11 @@
     <el-card>
       <div style="margin-bottom:16px"><el-radio-group v-model="statusFilter" @change="fetchData"><el-radio-button :value="null">全部</el-radio-button><el-radio-button :value="0">待确认</el-radio-button><el-radio-button :value="1">已确认</el-radio-button><el-radio-button :value="2">维修中</el-radio-button><el-radio-button :value="3">已完成</el-radio-button><el-radio-button :value="4">已取消</el-radio-button><el-radio-button :value="5">爽约</el-radio-button></el-radio-group></div>
       <el-table :data="list" stripe>
-        <el-table-column prop="orderNo" label="订单号" width="180" />
+        <el-table-column label="订单号" width="180">
+          <template #default="{row}">
+            <el-link type="primary" @click="showOrderDetail(row)">{{ row.orderNo }}</el-link>
+          </template>
+        </el-table-column>
         <el-table-column prop="shopName" label="维修店" />
         <el-table-column label="服务" min-width="140">
           <template #default="{row}">
@@ -81,6 +85,31 @@
         </div>
       </div>
     </el-dialog>
+
+    <el-dialog v-model="showOrderDetailDialog" title="订单详情" width="650px">
+      <div v-if="currentOrderDetail" class="order-detail">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="订单号" :span="2">{{ currentOrderDetail.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="维修店">{{ currentOrderDetail.shopName }}</el-descriptions-item>
+          <el-descriptions-item label="状态"><el-tag :type="statusType(currentOrderDetail.status)" size="small">{{ currentOrderDetail.statusName }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="服务">{{ currentOrderDetail.serviceName || '自定义服务' }}</el-descriptions-item>
+          <el-descriptions-item label="车型">{{ currentOrderDetail.motorcycleModel || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="预约时间">{{ currentOrderDetail.appointmentTime }}</el-descriptions-item>
+          <el-descriptions-item label="金额">¥{{ currentOrderDetail.totalAmount || 0 }}</el-descriptions-item>
+          <el-descriptions-item label="维修师傅">{{ currentOrderDetail.employeeName || '未分配' }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ currentOrderDetail.createTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="完单时间">{{ currentOrderDetail.completeTime || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <div v-if="currentOrderDetail.problemDescription" style="margin-top:12px">
+          <strong>问题描述：</strong>
+          <p style="color:#666;margin:4px 0 0">{{ currentOrderDetail.problemDescription }}</p>
+        </div>
+        <div v-if="currentOrderDetail.towService===1" style="margin-top:12px;padding:12px;background:#fdf6ec;border-radius:8px;border:1px solid #faecd8">
+          <h4 style="margin:0 0 8px;color:#e6a23c">🚛 拖车服务信息</h4>
+          <p style="color:#666;font-size:13px">取车地址：{{ currentOrderDetail.towAddress || '-' }} | 距离：{{ currentOrderDetail.towDistance ? currentOrderDetail.towDistance + '公里' : '-' }} | 拖车费：¥{{ currentOrderDetail.towFee || 0 }}</p>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 <script setup>
@@ -92,7 +121,7 @@ import { useUserStore } from '../../store/user'
 import { useConfigStore } from '../../store/config'
 const userStore = useUserStore(), configStore = useConfigStore()
 const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
-const list = ref([]), statusFilter = ref(null), showReview = ref(false), showTech = ref(false), showPay = ref(false), currentTech = ref(null), payOrder = ref(null)
+const list = ref([]), statusFilter = ref(null), showReview = ref(false), showTech = ref(false), showPay = ref(false), currentTech = ref(null), payOrder = ref(null), showOrderDetailDialog = ref(false), currentOrderDetail = ref(null)
 const reviewForm = reactive({ appointmentId:null, userId:null, shopId:null, technicianId:null, technicianName:'', shopRating:5, techRating:5, content:'', selectedTags:[] })
 const submittingReview = ref(false)
 const goodTags = computed(() => configStore.reviewTags)
@@ -111,6 +140,7 @@ const cancel = async row => {
   } catch {}
 }
 const showTechInfo = row => { currentTech.value = row; showTech.value = true }
+const showOrderDetail = row => { currentOrderDetail.value = row; showOrderDetailDialog.value = true }
 const openPay = row => { payOrder.value = row; showPay.value = true }
 const doPay = async method => { try { await appointmentAPI.pay(payOrder.value.id, method); ElMessage.success('支付成功'); showPay.value=false; fetchData() } catch{ ElMessage.error('支付失败') } }
 const openReview = row => {

@@ -11,7 +11,7 @@
       <el-table :data="list" stripe>
         <el-table-column prop="serviceName" label="服务名称" />
         <el-table-column prop="description" label="描述" show-overflow-tooltip />
-        <el-table-column prop="price" label="价格" width="100"><template #default="{row}">¥{{ row.price }}</template></el-table-column>
+        <el-table-column prop="price" label="参考价格" width="100"><template #default="{row}">¥{{ row.price }}</template></el-table-column>
         <el-table-column prop="duration" label="时长" width="100"><template #default="{row}">{{ row.duration }}分钟</template></el-table-column>
         <el-table-column label="操作" width="160">
           <template #default="{row}"><el-button size="small" type="primary" @click="handleEdit(row)">编辑</el-button><el-button size="small" type="danger" @click="handleDel(row)">删除</el-button></template>
@@ -30,7 +30,7 @@
           <el-input v-else v-model="form.serviceName" />
         </el-form-item>
         <el-form-item label="描述"><el-input v-model="form.description" type="textarea" rows="3" /></el-form-item>
-        <el-form-item label="价格(元)"><el-input-number v-model="form.price" :min="0" :precision="2" /></el-form-item>
+        <el-form-item label="参考价格(元)"><el-input-number v-model="form.price" :min="0" :precision="2" /></el-form-item>
         <el-form-item label="时长(分钟)"><el-input-number v-model="form.duration" :min="1" /></el-form-item>
       </el-form>
       <template #footer><el-button @click="showDlg=false">取消</el-button><el-button type="primary" @click="handleSubmit">确定</el-button></template>

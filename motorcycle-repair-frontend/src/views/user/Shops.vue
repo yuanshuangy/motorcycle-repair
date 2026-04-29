@@ -24,7 +24,10 @@
             <h4 style="margin:0 0 8px">{{ svc.serviceName }}</h4>
             <p style="color:#999;font-size:13px;margin:4px 0">{{ svc.description }}</p>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-              <span style="color:#f5222d;font-weight:700;font-size:18px">¥{{ svc.price }}</span>
+              <div>
+                <span style="color:#f5222d;font-weight:700;font-size:18px">¥{{ svc.price }}</span>
+                <span style="color:#999;font-size:12px;margin-left:6px">参考价</span>
+              </div>
               <span style="color:#999;font-size:13px">{{ svc.duration }}分钟</span>
             </div>
             <el-button type="primary" size="small" style="width:100%;margin-top:12px" @click="openBook(svc)">立即预约</el-button>
@@ -128,16 +131,19 @@
           <div v-if="businessHoursTip" style="color:#f5222d;font-size:12px;margin-top:4px">{{ businessHoursTip }}</div>
         </el-form-item>
         <el-form-item label="指定技师">
-          <el-select v-model="bookForm.employeeId" placeholder="不指定则系统自动分配" clearable style="width:100%" @change="onTechChange">
-            <el-option v-for="t in recommendedTechs" :key="t.id" :value="t.id" :disabled="t.hasConflict || tomorrowRestIds.has(t.id)" :label="t.name + (t.skill?' ['+t.skill+']':'')">
+          <el-select v-model="bookForm.employeeId" placeholder="不指定则系统自动分配最优技师" clearable style="width:100%" @change="onTechChange">
+            <el-option v-for="t in recommendedTechs" :key="t.id" :value="t.id" :disabled="!isTechAvailable(t)" :label="t.name + (t.skill?' ['+t.skill+']':'')">
               <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
                 <div><span style="font-weight:600">{{ t.name }}</span><span v-if="t.skill" style="color:#999;font-size:12px;margin-left:6px">{{ t.skill }}</span></div>
-                <div style="display:flex;gap:4px">
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
                   <el-tag v-if="tomorrowRestIds.has(t.id)" type="warning" size="small">明日休息</el-tag>
                   <el-tag v-if="t.skillMatch" type="success" size="small">专业匹配</el-tag>
                   <el-tag v-if="t.hasConflict" type="danger" size="small">时间冲突</el-tag>
-                  <el-tag v-if="!t.hasConflict && !tomorrowRestIds.has(t.id)" type="info" size="small">{{ t.currentOrders }}单</el-tag>
+                  <el-tag v-if="!t.hasConflict && !tomorrowRestIds.has(t.id)" type="info" size="small">当前{{ t.currentOrders }}单</el-tag>
                 </div>
+              </div>
+              <div v-if="!isTechAvailable(t)" style="color:#f56c6c;font-size:11px;margin-top:2px">
+                {{ tomorrowRestIds.has(t.id) ? '⚠️ 该技师明日休息，无法接单' : '⚠️ 该时间段已有其他预约' }}
               </div>
             </el-option>
           </el-select>
@@ -145,8 +151,12 @@
         </el-form-item>
         <el-form-item label="摩托车型号"><el-input v-model="bookForm.motorcycleModel" placeholder="如：本田CB400" /></el-form-item>
         <el-form-item label="问题描述"><el-input v-model="bookForm.problemDescription" type="textarea" rows="3" placeholder="请描述您的摩托车故障或需求" /></el-form-item>
-        <el-form-item label="费用合计">
-          <span style="font-size:20px;font-weight:700;color:#f5222d">¥{{ totalAmount }}</span>
+        <el-form-item label="参考费用">
+          <div>
+            <span style="font-size:20px;font-weight:700;color:#f5222d">¥{{ totalAmount }}</span>
+            <el-tag type="info" size="small" style="margin-left:8px">预估价</el-tag>
+            <p style="color:#999;font-size:12px;margin-top:4px">💡 实际费用以技师检查后出具的最终价格为准</p>
+          </div>
           <span v-if="bookForm.towService===1" style="color:#999;font-size:13px;margin-left:8px">(维修¥{{ servicePrice }} + 拖车¥{{ towPrice }})</span>
         </el-form-item>
         <el-form-item label="备注"><el-input v-model="bookForm.remark" placeholder="其他备注信息" /></el-form-item>
@@ -229,6 +239,12 @@ const isOpen = computed(() => {
   const openMin = parseInt(match[1])*60+parseInt(match[2]||'0'), closeMin = parseInt(match[3])*60+parseInt(match[4]||'0')
   return nowMin >= openMin && nowMin < closeMin
 })
+const isTechAvailable = (t) => {
+  if (!t) return false
+  if (tomorrowRestIds.value.has(t.id)) return false
+  if (t.hasConflict) return false
+  return true
+}
 const isTodayPastBusinessHours = computed(() => {
   if (isOpen.value) return false
   const now = new Date()

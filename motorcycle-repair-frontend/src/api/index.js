@@ -74,6 +74,9 @@ export const appointmentAPI = {
   confirmPickup: id => api.put(`/appointments/pickup/${id}`),
   pickupFailed: id => api.put(`/appointments/pickup-failed/${id}`),
   vehicleArrived: id => api.put(`/appointments/vehicle-arrived/${id}`),
+  confirmPrice: (id, finalPrice, priceRemark) => api.put(`/appointments/confirm-price/${id}`, null, { params: { finalPrice, priceRemark } }),
+  getTransferTechs: id => api.get(`/appointments/transfer-techs/${id}`),
+  transferOrder: (id, newTechId, transferReason) => api.put(`/appointments/transfer/${id}`, null, { params: { newTechId, transferReason } }),
 }
 export const employeeAPI = {
   getPage: p => api.get('/employees/page', { params: p }),

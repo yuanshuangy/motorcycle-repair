@@ -33,6 +33,7 @@ public class AppointmentDTO {
     private String statusName;
     private String remark;
     private Double totalAmount;
+    private Double finalPrice;
     private Integer payStatus;
     private String payMethod;
     private Boolean hasReview;

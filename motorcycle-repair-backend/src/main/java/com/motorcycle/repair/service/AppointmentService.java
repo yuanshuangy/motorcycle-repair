@@ -464,4 +464,68 @@ public class AppointmentService extends ServiceImpl<AppointmentMapper, Appointme
         a.setPayTime(java.time.LocalDateTime.now());
         this.updateById(a);
     }
+
+    public void confirmPrice(Long id, Double finalPrice, String priceRemark) {
+        Appointment a = this.getById(id);
+        if (a == null) throw new RuntimeException("订单不存在");
+        if (a.getStatus() != 2) throw new RuntimeException("只有维修中的订单才能确认价格");
+        if (finalPrice == null || finalPrice < 0) throw new RuntimeException("价格不能为负数");
+        String existingRemark = a.getRemark() != null ? a.getRemark().trim() : "";
+        StringBuilder newRemark = new StringBuilder(existingRemark);
+        if (priceRemark != null && !priceRemark.trim().isEmpty()) {
+            if (newRemark.length() > 0) newRemark.append(" | ");
+            newRemark.append("价格备注:").append(priceRemark.trim());
+        }
+        a.setTotalAmount(finalPrice);
+        a.setRemark(newRemark.toString());
+        this.updateById(a);
+    }
+
+    public List<Map<String, Object>> getTransferTechs(Long id) {
+        Appointment a = this.getById(id);
+        if (a == null) throw new RuntimeException("订单不存在");
+        Long shopId = a.getShopId();
+        List<User> techs = shopTechnicianService.getActiveTechniciansByShop(shopId);
+        LocalDateTime aptTime = a.getAppointmentTime();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (User tech : techs) {
+            if (tech.getId().equals(a.getEmployeeId())) continue;
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", tech.getId());
+            item.put("name", tech.getRealName() != null ? tech.getRealName() : tech.getUsername());
+            item.put("skill", tech.getSkill() != null ? tech.getSkill() : "");
+            long currentOrders = this.count(new LambdaQueryWrapper<Appointment>()
+                    .eq(Appointment::getEmployeeId, tech.getId())
+                    .in(Appointment::getStatus, 0, 1, 2));
+            item.put("currentOrders", currentOrders);
+            boolean hasConflict = false;
+            if (aptTime != null) {
+                hasConflict = checkTimeConflict(shopId, tech.getId(), aptTime, a.getServiceId());
+            }
+            item.put("hasConflict", hasConflict);
+            result.add(item);
+        }
+        return result;
+    }
+
+    public void transferOrder(Long id, Long newTechId, String transferReason) {
+        Appointment a = this.getById(id);
+        if (a == null) throw new RuntimeException("订单不存在");
+        if (a.getStatus() < 1 || a.getStatus() > 2) throw new RuntimeException("只有待处理或维修中的订单才能转单");
+        if (newTechId != null && newTechId.equals(a.getEmployeeId())) throw new RuntimeException("不能转单给自己");
+        User newTech = userService.getById(newTechId);
+        if (newTech == null) throw new RuntimeException("目标技师不存在");
+        if (a.getAppointmentTime() != null && checkTimeConflict(a.getShopId(), newTechId, a.getAppointmentTime(), a.getServiceId())) {
+            throw new RuntimeException("目标技师在预约时间段已有其他预约，无法转单");
+        }
+        a.setEmployeeId(newTechId);
+        String existingRemark = a.getRemark() != null ? a.getRemark().trim() : "";
+        StringBuilder newRemark = new StringBuilder(existingRemark);
+        if (transferReason != null && !transferReason.trim().isEmpty()) {
+            if (newRemark.length() > 0) newRemark.append(" | ");
+            newRemark.append("转单原因:").append(transferReason.trim());
+        }
+        a.setRemark(newRemark.toString());
+        this.updateById(a);
+    }
 }

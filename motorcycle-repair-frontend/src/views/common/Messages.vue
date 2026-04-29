@@ -10,7 +10,7 @@
       <el-table :data="messages" stripe>
         <el-table-column prop="title" label="标题" width="200" />
         <el-table-column prop="content" label="内容" show-overflow-tooltip />
-        <el-table-column label="发送者" width="100">
+        <el-table-column label="发送者" width="120">
           <template #default="{row}">{{senderLabel(row)}}</template>
         </el-table-column>
         <el-table-column prop="type" label="类型" width="80">
@@ -31,8 +31,8 @@
     <el-dialog v-model="showChat" title="发起聊天" width="500px">
       <el-form :model="chatForm" label-width="80px">
         <el-form-item label="接收者">
-          <el-select v-model="chatForm.targetUserId" filterable placeholder="搜索用户" style="width:100%">
-            <el-option v-for="u in allUsers" :key="u.id" :label="(u.realName||u.username)+' ('+roleName(u.role)+')'" :value="u.id" />
+          <el-select v-model="chatForm.targetUserId" filterable placeholder="选择联系人" style="width:100%">
+            <el-option v-for="u in allUsers" :key="u.id" :label="u.realName || u.username || u.shopName" :value="u.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="内容"><el-input v-model="chatForm.content" type="textarea" :rows="4" placeholder="输入聊天内容" /></el-form-item>
@@ -47,29 +47,91 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { authAPI, adminAPI, shopAPI } from '../../api'
+import { authAPI, adminAPI, shopAPI, appointmentAPI } from '../../api'
 import { useUserStore } from '../../store/user'
 import { useConfigStore } from '../../store/config'
 const userStore = useUserStore(), configStore = useConfigStore()
 const messages = ref([]), showChat = ref(false), sending = ref(false), allUsers = ref([])
 const chatForm = ref({ targetUserId: null, content: '' })
-const roleName = r => configStore.roleName(r)
+let currentShopId = null
 const senderLabel = (row) => {
   if (!row.senderRole) return '系统'
-  return configStore.roleName(row.senderRole)
+  return row.senderName || configStore.roleName(row.senderRole)
 }
 const fetchData = async () => { try { const r = await authAPI.getMessages(userStore.userId, 1, 50); if(r.code===200) messages.value = r.data.records; userStore.fetchUnreadCount() } catch(e){} }
 const markRead = async id => { try { await authAPI.markRead(id); fetchData() } catch(e){} }
 const markAllRead = async () => { try { await authAPI.markAllRead(userStore.userId); ElMessage.success('已全部标记已读'); fetchData() } catch(e){} }
+
+const fetchShopId = async () => {
+  if (currentShopId) return currentShopId
+  if (userStore.role === 2) {
+    try {
+      const r = await shopAPI.getByUserId(userStore.userId)
+      if (r.code === 200 && r.data) {
+        currentShopId = r.data.id
+        return currentShopId
+      }
+    } catch {}
+  }
+  return null
+}
+
 const openChat = async () => {
   chatForm.value = { targetUserId: null, content: '' }
+  allUsers.value = []
+
   if (userStore.role === 3) {
-    try { const r = await shopAPI.getApprovedShops(); if(r.code===200) allUsers.value = r.data.filter(s=>s.userId).map(s => ({ id: s.userId, realName: s.shopName, role: 2 })) } catch{}
-  } else {
-    try { const r = await adminAPI.getUserPage({ pageNum: 1, pageSize: 500 }); if(r.code===200) allUsers.value = r.data.records.filter(u => u.id !== userStore.userId) } catch{}
+    try { const r = await shopAPI.getApprovedShops(); if(r.code===200) allUsers.value = r.data.filter(s=>s.userId).map(s => ({ id: s.userId, realName: s.shopName })) } catch{}
+  } else if (userStore.role === 4) {
+    try { const r = await shopAPI.getApprovedShops(); if(r.code===200) allUsers.value = r.data.filter(s=>s.userId).map(s => ({ id: s.userId, realName: s.shopName })) } catch{}
+  } else if (userStore.role === 2) {
+    const shopId = await fetchShopId()
+    if (shopId) {
+      try {
+        const [techR, aptR] = await Promise.all([
+          shopAPI.getTechnicians(shopId),
+          appointmentAPI.getPage({ pageNum: 1, pageSize: 200, shopId })
+        ])
+        const userList = []
+        if (techR.code === 200 && techR.data) {
+          techR.data.forEach(t => {
+            if (t.userId) userList.push({ id: t.userId, realName: t.realName || t.username })
+          })
+        }
+        if (aptR.code === 200 && aptR.data.records) {
+          const userIdSet = new Set(userList.map(u => u.id))
+          aptR.data.records.forEach(a => {
+            if (a.userId && !userIdSet.has(a.userId)) {
+              userList.push({ id: a.userId, realName: a.userName })
+              userIdSet.add(a.userId)
+            }
+          })
+        }
+        allUsers.value = userList
+      } catch {}
+    }
+  } else if (userStore.role === 1) {
+    const [shopR, userR] = await Promise.all([
+      shopAPI.getList().catch(() => ({ code: 500 })),
+      adminAPI.getUserPage({ pageNum: 1, pageSize: 100 }).catch(() => ({ code: 500 }))
+    ])
+    const userList = []
+    if (shopR.code === 200 && shopR.data) {
+      shopR.data.forEach(s => { if (s.userId) userList.push({ id: s.userId, realName: s.shopName }) })
+    }
+    if (userR.code === 200 && userR.data.records) {
+      userR.data.records.forEach(u => {
+        if ((u.role === 3 || u.role === 4) && u.id !== userStore.userId) {
+          userList.push({ id: u.id, realName: u.realName || u.username })
+        }
+      })
+    }
+    allUsers.value = userList
   }
+
   showChat.value = true
 }
+
 const handleChat = async () => {
   if (!chatForm.value.targetUserId) return ElMessage.warning('请选择接收者')
   if (!chatForm.value.content) return ElMessage.warning('请输入内容')
@@ -80,12 +142,63 @@ const handleChat = async () => {
   } catch { ElMessage.error('发送失败') }
   finally { sending.value = false }
 }
+
 const replyMsg = async row => {
   chatForm.value = { targetUserId: row.senderId ?? row.userId, content: '' }
+  allUsers.value = []
+  
+  const targetUser = allUsers.value.find(u => u.id === chatForm.value.targetUserId)
+  if (!targetUser) {
+    allUsers.value = [{ id: row.senderId ?? row.userId, realName: row.senderName || row.title || '对方' }]
+  }
+  
   if (userStore.role === 3) {
-    try { const r = await shopAPI.getApprovedShops(); if(r.code===200) allUsers.value = r.data.filter(s=>s.userId).map(s => ({ id: s.userId, realName: s.shopName, role: 2 })) } catch{}
-  } else {
-    try { const r = await adminAPI.getUserPage({ pageNum: 1, pageSize: 500 }); if(r.code===200) allUsers.value = r.data.records.filter(u => u.id !== userStore.userId) } catch{}
+    try { const r = await shopAPI.getApprovedShops(); if(r.code===200) allUsers.value = r.data.filter(s=>s.userId).map(s => ({ id: s.userId, realName: s.shopName })) } catch{}
+  } else if (userStore.role === 4) {
+    try { const r = await shopAPI.getApprovedShops(); if(r.code===200) allUsers.value = r.data.filter(s=>s.userId).map(s => ({ id: s.userId, realName: s.shopName })) } catch{}
+  } else if (userStore.role === 2) {
+    const shopId = await fetchShopId()
+    if (shopId) {
+      try {
+        const [techR, aptR] = await Promise.all([
+          shopAPI.getTechnicians(shopId),
+          appointmentAPI.getPage({ pageNum: 1, pageSize: 200, shopId })
+        ])
+        const userList = []
+        if (techR.code === 200 && techR.data) {
+          techR.data.forEach(t => {
+            if (t.userId) userList.push({ id: t.userId, realName: t.realName || t.username })
+          })
+        }
+        if (aptR.code === 200 && aptR.data.records) {
+          const userIdSet = new Set(userList.map(u => u.id))
+          aptR.data.records.forEach(a => {
+            if (a.userId && !userIdSet.has(a.userId)) {
+              userList.push({ id: a.userId, realName: a.userName })
+              userIdSet.add(a.userId)
+            }
+          })
+        }
+        allUsers.value = userList
+      } catch {}
+    }
+  } else if (userStore.role === 1) {
+    const [shopR, userR] = await Promise.all([
+      shopAPI.getList().catch(() => ({ code: 500 })),
+      adminAPI.getUserPage({ pageNum: 1, pageSize: 100 }).catch(() => ({ code: 500 }))
+    ])
+    const userList = []
+    if (shopR.code === 200 && shopR.data) {
+      shopR.data.forEach(s => { if (s.userId) userList.push({ id: s.userId, realName: s.shopName }) })
+    }
+    if (userR.code === 200 && userR.data.records) {
+      userR.data.records.forEach(u => {
+        if ((u.role === 3 || u.role === 4) && u.id !== userStore.userId) {
+          userList.push({ id: u.id, realName: u.realName || u.username })
+        }
+      })
+    }
+    allUsers.value = userList
   }
   showChat.value = true
 }
