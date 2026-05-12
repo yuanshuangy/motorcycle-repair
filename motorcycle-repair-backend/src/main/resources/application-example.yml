@@ -1,0 +1,8 @@
+# 本地配置示例，请复制为 application-local.yml 并填入真实值
+aliyun:
+  oss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: YOUR_REAL_ACCESS_KEY_ID
+    access-key-secret: YOUR_REAL_ACCESS_KEY_SECRET
+    bucket-name: your-bucket-name
+    url-prefix: https://your-bucket.oss-cn-beijing.aliyuncs.com/

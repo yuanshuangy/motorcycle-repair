@@ -1,0 +1,56 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: motorcycle-repair-backend
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      continue-on-error: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    deserialization:
+      fail-on-unknown-properties: false
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/motorcycle_repair?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: ${DB_PASSWORD:159357}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+jwt:
+  secret: ${JWT_SECRET:MotorCycleRepairSecretKey2024VeryLongAndSecureKeyForJWT}
+  expiration: 86400000
+
+upload:
+  path: ./uploads/
+
+aliyun:
+  oss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: YOUR_ACCESS_KEY_ID
+    access-key-secret: YOUR_ACCESS_KEY_SECRET
+    bucket-name: fanpengxu123
+    url-prefix: https://fanpengxu123.oss-cn-beijing.aliyuncs.com/
+
+amap:
+  api-key: ${AMAP_API_KEY:9aa4235e10a5ebb0d5421ba0d2efb570}
+  base-url: https://restapi.amap.com/v3
